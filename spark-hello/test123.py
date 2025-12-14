@@ -24,3 +24,12 @@ words = lines.select(
 
 # Generate running word count
 wordCounts = words.groupBy("word").count()
+
+ # Start running the query that prints the running counts to the console
+query = wordCounts \
+    .writeStream \
+    .outputMode("complete") \
+    .format("console") \
+    .start()
+
+query.awaitTermination()
