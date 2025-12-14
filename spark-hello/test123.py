@@ -1,28 +1,34 @@
+# simple_tcp_streaming.py
 import sys
-from random import random
-from operator import add
-
 from pyspark.sql import SparkSession
 
-
 if __name__ == "__main__":
-    """
-        Usage: pi [partitions]
-    """
-    spark = SparkSession\
-        .builder\
-        .appName("PythonPi")\
+    if len(sys.argv) != 3:
+        print("Usage: simple_tcp_streaming.py <host> <port>")
+        sys.exit(1)
+    
+    host = sys.argv[1]
+    port = sys.argv[2]
+    
+    spark = SparkSession.builder \
+        .appName("SimpleTCPStream") \
         .getOrCreate()
-
-    partitions = int(sys.argv[1]) if len(sys.argv) > 1 else 2
-    n = 100000 * partitions
-
-    def f(_: int) -> float:
-        x = random() * 2 - 1
-        y = random() * 2 - 1
-        return 1 if x ** 2 + y ** 2 <= 1 else 0
-
-    count = spark.sparkContext.parallelize(range(1, n + 1), partitions).map(f).reduce(add)
-    print("Hello! Pi is roughly %f" % (4.0 * count / n))
-
-    spark.stop()
+    
+    spark.sparkContext.setLogLevel("WARN")
+    
+    # Read from socket
+    lines = spark.readStream \
+        .format("socket") \
+        .option("host", host) \
+        .option("port", port) \
+        .load()
+    
+    # Print raw messages
+    print("Starting to listen for messages...")
+    
+    query = lines.writeStream \
+        .outputMode("append") \
+        .format("console") \
+        .start()
+    
+    query.awaitTermination()
