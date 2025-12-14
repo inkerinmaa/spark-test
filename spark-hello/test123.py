@@ -11,7 +11,7 @@ spark = SparkSession \
 lines = spark \
     .readStream \
     .format("socket") \
-    .option("host", "tcp-server") \
+    .option("host", "tcp-server.default.svc.cluster.local") \
     .option("port", 9999) \
     .load()
 
