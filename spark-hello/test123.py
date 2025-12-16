@@ -1,35 +1,31 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode
-from pyspark.sql.functions import split
+from pyspark.sql.types import StructType, StructField, StringType
+import time
 
-spark = SparkSession \
-    .builder \
-    .appName("StructuredNetworkWordCount") \
-    .getOrCreate()
+def main():
+    # Create Spark session
+    spark = SparkSession.builder \
+        .appName("PythonSparkTest") \
+        .getOrCreate()
+    
+    # Simple test
+    data = [("Hello", "World"), ("Spark", "Kubernetes")]
+    schema = StructType([
+        StructField("word1", StringType(), True),
+        StructField("word2", StringType(), True)
+    ])
+    
+    df = spark.createDataFrame(data, schema)
+    df.show()
+    
+    # Count rows
+    count = df.count()
+    print(f"Total rows: {count}")
+    
+    # Create a simple transformation
+    df.selectExpr("concat(word1, ' ', word2) as sentence").show()
+    
+    spark.stop()
 
-# Create DataFrame representing the stream of input lines from connection to localhost:9999
-lines = spark \
-    .readStream \
-    .format("socket") \
-    .option("host", "10.42.0.195") \
-    .option("port", 9999) \
-    .load()
-
-# Split the lines into words
-words = lines.select(
-   explode(
-       split(lines.value, " ")
-   ).alias("word")
-)
-
-# Generate running word count
-wordCounts = words.groupBy("word").count()
-
- # Start running the query that prints the running counts to the console
-query = wordCounts \
-    .writeStream \
-    .outputMode("complete") \
-    .format("console") \
-    .start()
-
-query.awaitTermination()
+if __name__ == "__main__":
+    main()
